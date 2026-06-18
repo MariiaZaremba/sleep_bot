@@ -6,17 +6,23 @@ export async function GET(req) {
     const initData = searchParams.get('initData') || '';
     const timezone = searchParams.get('timezone');
 
-    // Витягуємо chat_id з initData
+    // Спочатку пробуємо отримати chatId з initData (Telegram)
     let chatId = null;
-    try {
-      const params = new URLSearchParams(initData);
-      const userStr = params.get('user');
-      if (userStr) {
-        const user = JSON.parse(decodeURIComponent(userStr));
-        chatId = user.id;
+    if (initData) {
+      try {
+        const params = new URLSearchParams(initData);
+        const userStr = params.get('user');
+        if (userStr) {
+          const user = JSON.parse(decodeURIComponent(userStr));
+          chatId = user.id;
+        }
+      } catch {
+        // ігноруємо помилку парсингу
       }
-    } catch {
-      // для тестування без Telegram
+    }
+
+    // Fallback для тестування в браузері
+    if (!chatId) {
       chatId = searchParams.get('chatId');
     }
 
@@ -27,11 +33,6 @@ export async function GET(req) {
     const user = await getUser(chatId);
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Оновлюємо таймзону якщо прийшла з Mini App
-    if (timezone && timezone !== user.timezone) {
-      // TODO: оновити таймзону в Sheets
     }
 
     const logs = await getUserLogs(chatId);
