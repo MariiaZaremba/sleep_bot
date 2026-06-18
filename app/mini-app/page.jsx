@@ -21,7 +21,9 @@ export default function MiniApp() {
 
     // Завантажуємо дані
     const initData = tg?.initData || '';
-    fetch(`/api/mini-app/progress?initData=${encodeURIComponent(initData)}&timezone=${encodeURIComponent(timezone)}`)
+    const searchParams = new URLSearchParams(window.location.search);
+    const chatIdParam = searchParams.get('chatId') || '';
+    fetch(`/api/mini-app/progress?initData=${encodeURIComponent(initData)}&timezone=${encodeURIComponent(timezone)}&chatId=${chatIdParam}`)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
