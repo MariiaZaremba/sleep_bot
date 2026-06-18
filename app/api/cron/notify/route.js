@@ -2,6 +2,7 @@ import { getActiveUsers, getTask } from '@/lib/sheets';
 import { sendEveningTask, sendMorningCheckin } from '@/lib/telegram';
 
 const MINI_APP_URL = process.env.NEXT_PUBLIC_MINI_APP_URL || 'https://your-app.vercel.app/mini-app';
+const miniAppUrl = (chatId) => `${MINI_APP_URL}?chatId=${chatId}`;
 
 function getCurrentHour(timezone) {
   try {
@@ -51,7 +52,7 @@ export async function GET(req) {
 
         // Вечірнє повідомлення о 21:00
         if (localHour === 21) {
-          await sendEveningTask(user.chat_id, dayNum, task, MINI_APP_URL);
+          await sendEveningTask(user.chat_id, dayNum, task, miniAppUrl(user.chat_id));
           results.evening++;
         }
         // Ранковий check-in о 7:00

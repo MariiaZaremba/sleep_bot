@@ -13,6 +13,7 @@ import {
 } from '@/lib/telegram';
 
 const MINI_APP_URL = process.env.NEXT_PUBLIC_MINI_APP_URL || 'https://your-app.vercel.app/mini-app';
+const miniAppUrl = (chatId) => `${MINI_APP_URL}?chatId=${chatId}`;
 
 const userState = {};
 
@@ -68,7 +69,7 @@ export async function POST(req) {
       if (user && user.status === 'active') {
         await sendMessage(chatId,
           `Привіт, ${user.name}! Ти вже в челенджі 💚\nДень ${user.day_current} з 14.`,
-          [[{ text: 'Відкрити прогрес →', web_app: { url: MINI_APP_URL } }]]
+          [[{ text: 'Відкрити прогрес →', web_app: { url: miniAppUrl(chatId) } }]]
         );
         return Response.json({ ok: true });
       }
@@ -113,7 +114,7 @@ export async function POST(req) {
             start_date: getToday(),
           });
           userState[chatId] = {};
-          await sendOnboardingComplete(chatId, state.bed_time, MINI_APP_URL);
+          await sendOnboardingComplete(chatId, state.bed_time, miniAppUrl(chatId));
         } else {
           const reasonMap = {
             why_energy: 'Більше енергії',
@@ -196,7 +197,7 @@ export async function POST(req) {
 
         await updateUserDay(chatId, parseInt(s.day_num) + 1);
         userState[chatId] = {};
-        await sendCheckinComplete(chatId, MINI_APP_URL);
+        await sendCheckinComplete(chatId, miniAppUrl(chatId));
         return Response.json({ ok: true });
       }
     }
