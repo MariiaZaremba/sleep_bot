@@ -210,6 +210,22 @@ function StatsTab({ data }) {
         </div>
       </div>
 
+      <div style={s.card}>
+        <div style={s.sLabel}>Тривалість сну по ночах</div>
+        <div style={s.barChart}>
+          {Array.from({ length: 14 }, (_, i) => {
+            const log = logs.find(l => parseInt(l.day_num) === i + 1);
+            const val = log ? parseFloat(log.sleep_hours_actual) : 0;
+            return (
+              <div key={i} style={s.barCol}>
+                <div style={{ ...s.bar, height: val ? `${Math.round(val / 10 * 52)}px` : '3px', background: val ? '#4a9eff' : '#e0e0e0' }}></div>
+                <div style={s.barLbl}>{i + 1}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {Object.keys(reasonCounts).length > 0 && (
         <div style={s.card}>
           <div style={s.sLabel}>Чому пропускала</div>
@@ -260,6 +276,15 @@ function PlanTab({ data }) {
           </div>
         ))}
       </div>
+
+      {user.reasons_why && (
+        <div style={s.card}>
+          <div style={s.sLabel}>Мої причини</div>
+          {user.reasons_why.split(',').map(r => r.trim()).filter(Boolean).map(reason => (
+            <div key={reason} style={s.reasonItem}>💚 {reason}</div>
+          ))}
+        </div>
+      )}
 
       <div>
         <div style={s.sLabel}>Фази програми</div>
@@ -333,6 +358,7 @@ const s = {
   rbTrack: { flex: 1, background: '#e0e0e0', borderRadius: '3px', height: '7px', overflow: 'hidden' },
   rbFill: { height: '100%', borderRadius: '3px', background: '#e24b4a' },
   rbN: { fontSize: '11px', color: '#888', width: '16px', textAlign: 'right', flexShrink: 0 },
+  reasonItem: { fontSize: '13px', color: '#333', padding: '6px 0', borderBottom: '0.5px solid #f5f5f5' },
   planRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid #f0f0f0' },
   planLbl: { fontSize: '13px', color: '#888' },
   planVal: { fontSize: '13px', fontWeight: 500, color: '#222' },

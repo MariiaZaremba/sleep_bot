@@ -1,4 +1,4 @@
-import { getUser, createUser, saveLog, updateUserDay } from '@/lib/sheets';
+import { getUser, createUser, saveLog, updateUserDay, updateUserStatus, getUserLogs } from '@/lib/sheets';
 import {
   askSleepHours,
   askWakeTime,
@@ -9,6 +9,8 @@ import {
   askWakeTimeActual,
   askSleepQuality,
   sendCheckinComplete,
+  sendCheckinSkipComplete,
+  sendFinalReport,
   sendMessage,
 } from '@/lib/telegram';
 
@@ -64,6 +66,40 @@ export async function POST(req) {
     const user = await getUser(chatId);
     const state = userState[chatId] || {};
 
+    // /progress
+    if (text === '/progress') {
+      if (user) {
+        await sendMessage(chatId, 'Твій прогрес 👇',
+          [[{ text: 'Відкрити прогрес →', web_app: { url: miniAppUrl(chatId) } }]]
+        );
+      } else {
+        await sendMessage(chatId, 'Спочатку почни челендж — /start');
+      }
+      return Response.json({ ok: true });
+    }
+
+    // /pause
+    if (text === '/pause') {
+      if (user && user.status === 'active') {
+        await updateUserStatus(chatId, 'paused');
+        await sendMessage(chatId, '⏸ Челендж призупинено. Напиши /resume щоб продовжити.');
+      } else {
+        await sendMessage(chatId, 'Немає активного челенджу для паузи.');
+      }
+      return Response.json({ ok: true });
+    }
+
+    // /resume
+    if (text === '/resume') {
+      if (user && user.status === 'paused') {
+        await updateUserStatus(chatId, 'active');
+        await sendMessage(chatId, `▶️ Челендж відновлено! Продовжуємо з дня ${user.day_current} 💚`);
+      } else {
+        await sendMessage(chatId, 'Немає призупиненого челенджу.');
+      }
+      return Response.json({ ok: true });
+    }
+
     // /start
     if (text === '/start') {
       if (user && user.status === 'active') {
@@ -112,6 +148,7 @@ export async function POST(req) {
             bed_time: state.bed_time,
             sleep_hours: state.sleep_hours,
             start_date: getToday(),
+            reasons_why: (state.reasons || []).join(', '),
           });
           userState[chatId] = {};
           await sendOnboardingComplete(chatId, state.bed_time, miniAppUrl(chatId));
@@ -162,6 +199,7 @@ export async function POST(req) {
             reason_stress: 'Стрес / тривога',
             reason_social: 'Соціальні обставини',
             reason_work: 'Робота / дедлайн',
+            reason_other: 'Інше',
           };
           const key = callbackData.replace(/_\d+$/, '');
           const reason = reasonMap[key];
@@ -195,9 +233,43 @@ export async function POST(req) {
           sleep_hours_actual: sleepHoursActual,
         });
 
-        await updateUserDay(chatId, parseInt(s.day_num) + 1);
+        const nextDay = parseInt(s.day_num) + 1;
         userState[chatId] = {};
-        await sendCheckinComplete(chatId, miniAppUrl(chatId));
+
+        if (nextDay > 14) {
+          await updateUserStatus(chatId, 'completed');
+          const allLogs = await getUserLogs(chatId);
+          const doneDays = allLogs.filter(l => l.task_done === 'TRUE').length;
+          const sleepLogs = allLogs.filter(l => l.sleep_hours_actual);
+          const avgSleep = sleepLogs.length
+            ? (sleepLogs.reduce((a, l) => a + parseFloat(l.sleep_hours_actual), 0) / sleepLogs.length).toFixed(1)
+            : '—';
+          const qualLogs = allLogs.filter(l => l.sleep_quality);
+          const avgQuality = qualLogs.length
+            ? (qualLogs.reduce((a, l) => a + parseFloat(l.sleep_quality), 0) / qualLogs.length).toFixed(1)
+            : '—';
+          let maxStreak = 0, cur = 0;
+          allLogs.forEach(l => {
+            if (l.task_done === 'TRUE') { cur++; if (cur > maxStreak) maxStreak = cur; }
+            else { cur = 0; }
+          });
+          const reasonCounts = {};
+          allLogs.filter(l => l.skip_reasons).forEach(l => {
+            l.skip_reasons.split(',').forEach(r => {
+              const reason = r.trim();
+              if (reason) reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+            });
+          });
+          const topReason = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+          await sendFinalReport(chatId, { doneDays, avgSleep, avgQuality, streak: maxStreak, topReason }, miniAppUrl(chatId));
+        } else {
+          await updateUserDay(chatId, nextDay);
+          if (s.task_done) {
+            await sendCheckinComplete(chatId, miniAppUrl(chatId));
+          } else {
+            await sendCheckinSkipComplete(chatId, miniAppUrl(chatId));
+          }
+        }
         return Response.json({ ok: true });
       }
     }

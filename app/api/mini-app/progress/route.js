@@ -1,4 +1,4 @@
-import { getUser, getUserLogs, getTask } from '@/lib/sheets';
+import { getUser, getUserLogs, getTask, updateUserTimezone } from '@/lib/sheets';
 
 export async function GET(req) {
   try {
@@ -33,6 +33,10 @@ export async function GET(req) {
     const user = await getUser(chatId);
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (timezone) {
+      await updateUserTimezone(chatId, timezone).catch(() => {});
     }
 
     const logs = await getUserLogs(chatId);
