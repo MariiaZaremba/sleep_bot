@@ -365,7 +365,7 @@ const s = {
   phases: { display: 'flex', flexDirection: 'column', gap: '5px' },
   phase: { display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 10px', background: '#f5f5f5', borderRadius: '8px' },
   phaseCur: { background: G },
-  pNum: { width: '28px', height: '22px', borderRadius: '11px', background: '#ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 500, color: '#888', flexShrink: 0 },
+  pNum: { width: '38px', height: '22px', borderRadius: '11px', background: '#ddd', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 500, color: '#888', flexShrink: 0, whiteSpace: 'nowrap' },
   pNumCur: { background: 'rgba(255,255,255,.3)', color: 'white' },
   pTxt: { fontSize: '13px', color: '#888' },
   pTxtCur: { color: 'white' },
